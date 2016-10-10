@@ -7,6 +7,13 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 class ExampleTest extends TestCase
 {
     use DatabaseTransactions;
+
+    // protected $jsonHeaders = [
+    //     'Content-Type' => 'application/json',
+    //     'Accept' => 'application/json',
+    //     '_token' => csrf_token
+    // ];
+
     /**
      * A basic functional test example.
      *
@@ -43,5 +50,40 @@ class ExampleTest extends TestCase
         array_map(function ($description) {
             $this->seeJson($description->jsonSerialize());
         }, $product->descriptions->all());
+    }
+
+    public function testProductCreation()
+    {
+        $product = factory(\App\Product::class)->make();
+
+        $this->post(
+            route('products.store'),
+            $product->jsonSerialize()
+        )->seeInDatabase('products', ['name' => $product->name])
+            ->assertResponseOk();
+    }
+
+    public function testProductUpdate()
+    {
+        $product = factory(\App\Product::class)->create(['name' => 'beets']);
+        $product->name = 'feets';
+
+        $this->put(route('products.update', ['product' => $product->id]),
+            $product->jsonSerialize()
+        )->seeInDatabase('products', ['name' => $product->name])
+            ->assertResponseOk();
+    }
+
+    public function testProductDescriptionCreation() //todo: fix this text
+    {
+        $product = factory(\App\Product::class)->create();
+        $description = factory(\App\Description::class)->make();
+
+        $this->post(
+            route('products.descriptions.store', ['product' => $product->id]),
+            $description->jsonSerialize(),
+            ['_token' => csrf_token()]
+        )->seeInDatabase('descriptions', ['body' => $description->body])
+            ->assertResponseOk();
     }
 }
