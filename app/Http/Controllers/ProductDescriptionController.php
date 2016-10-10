@@ -17,6 +17,10 @@ class ProductDescriptionController extends Controller
 
     public function store($productId, Request $request)
     {
+        $this->validate($request, [
+            'body' => 'required'
+        ]);
+
         $product = Product::findOrFail($productId);
 
         $product->descriptions()->save(

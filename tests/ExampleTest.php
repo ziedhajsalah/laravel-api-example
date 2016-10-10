@@ -8,11 +8,11 @@ class ExampleTest extends TestCase
 {
     use DatabaseTransactions;
 
-    // protected $jsonHeaders = [
-    //     'Content-Type' => 'application/json',
-    //     'Accept' => 'application/json',
-    //     '_token' => csrf_token
-    // ];
+    protected $jsonHeaders = [
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json',
+        // '_token' => csrf_token
+    ];
 
     /**
      * A basic functional test example.
@@ -74,6 +74,31 @@ class ExampleTest extends TestCase
             ->assertResponseOk();
     }
 
+    public function testProductCreationFailsWhenNameNotProvided()
+    {
+        $product = factory(\App\Product::class)->make(['name' => '']);
+
+        $this->post(
+            route('products.store'),
+            $product->jsonSerialize(),
+            $this->jsonHeaders
+        )->seeJson(['name' => ['The name field is required.']])
+            ->assertResponseStatus(422);
+    }
+
+    public function testProductCreationFailsWhenNameIsDuplicate()
+    {
+        $product = factory(\App\Product::class)
+            ->create(['name' => 'awesomeProduct']);
+
+        $this->post(
+            route('products.store'),
+            ['name' => $product->name],
+            $this->jsonHeaders
+        )->seeJson(['name' => ['The name has already been taken.']])
+            ->assertResponseStatus(422);
+    }
+
     public function testProductDescriptionCreation() //todo: fix this text
     {
         $product = factory(\App\Product::class)->create();
@@ -85,5 +110,18 @@ class ExampleTest extends TestCase
             ['_token' => csrf_token()]
         )->seeInDatabase('descriptions', ['body' => $description->body])
             ->assertResponseOk();
+    }
+
+    public function testProductDescriptionCreationFailsWhenBodyNotProvided()
+    {
+        $product = factory(\App\Product::class)->create();
+        $description = factory(\App\Description::class)->make(['body' => '']);
+
+        $this->post(
+            route('products.descriptions.store', ['product' => $product->id]),
+            $description->jsonSerialize(),
+            $this->jsonHeaders
+        )->seeJson(['body' => ['The body field is required.']])
+            ->assertResponseStatus(422);
     }
 }
